@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from schemas.environment import CreateEnvironmentRequest, Environment, OperationResponse
 from services.environment_service import EnvironmentService
 
-router = APIRouter(prefix="/api/environments")
+router = APIRouter(prefix="/environments")
 
 
 @router.post("", response_model=OperationResponse)

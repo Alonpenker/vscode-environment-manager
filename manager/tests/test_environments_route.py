@@ -94,7 +94,7 @@ def test_create_environment_returns_400_for_nonexistent_path(client):
 
     # Then: 400 with WORKSPACE_NOT_FOUND
     assert response.status_code == 400
-    assert response.json()["error_code"] == WORKSPACE_NOT_FOUND
+    assert response.json()["detail"]["error_code"] == WORKSPACE_NOT_FOUND
 
 
 def test_create_environment_returns_400_for_path_traversal(client):
@@ -109,7 +109,7 @@ def test_create_environment_returns_400_for_path_traversal(client):
 
     # Then: 400 with WORKSPACE_PATH_TRAVERSAL
     assert response.status_code == 400
-    assert response.json()["error_code"] == WORKSPACE_PATH_TRAVERSAL
+    assert response.json()["detail"]["error_code"] == WORKSPACE_PATH_TRAVERSAL
 
 
 def test_create_environment_returns_400_for_file_instead_of_directory(client):
@@ -124,7 +124,7 @@ def test_create_environment_returns_400_for_file_instead_of_directory(client):
 
     # Then: 400 with WORKSPACE_NOT_A_DIRECTORY
     assert response.status_code == 400
-    assert response.json()["error_code"] == WORKSPACE_NOT_A_DIRECTORY
+    assert response.json()["detail"]["error_code"] == WORKSPACE_NOT_A_DIRECTORY
 
 
 def test_create_environment_returns_422_when_mount_folder_field_is_missing(client):
@@ -149,7 +149,7 @@ def test_create_environment_returns_409_when_environment_limit_is_reached(client
 
     # Then: 409 with ENVIRONMENT_LIMIT_REACHED
     assert response.status_code == 409
-    assert response.json()["error_code"] == "ENVIRONMENT_LIMIT_REACHED"
+    assert response.json()["detail"]["error_code"] == "ENVIRONMENT_LIMIT_REACHED"
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +218,7 @@ def test_get_environment_returns_404_for_unknown_id(client):
 
     # Then: 404 with ENVIRONMENT_NOT_FOUND
     assert response.status_code == 404
-    assert response.json()["error_code"] == ENVIRONMENT_NOT_FOUND
+    assert response.json()["detail"]["error_code"] == ENVIRONMENT_NOT_FOUND
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +251,7 @@ def test_stop_environment_returns_409_when_already_stopped(client):
 
     # Then: 409 with ENVIRONMENT_ALREADY_STOPPED
     assert response.status_code == 409
-    assert response.json()["error_code"] == ENVIRONMENT_ALREADY_STOPPED
+    assert response.json()["detail"]["error_code"] == ENVIRONMENT_ALREADY_STOPPED
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +284,7 @@ def test_start_environment_returns_409_when_already_running(client):
 
     # Then: 409 with ENVIRONMENT_ALREADY_RUNNING
     assert response.status_code == 409
-    assert response.json()["error_code"] == ENVIRONMENT_ALREADY_RUNNING
+    assert response.json()["detail"]["error_code"] == ENVIRONMENT_ALREADY_RUNNING
 
 
 # ---------------------------------------------------------------------------
@@ -318,7 +318,7 @@ def test_delete_unknown_environment_returns_404(client):
 
     # Then: 404 with ENVIRONMENT_NOT_FOUND
     assert response.status_code == 404
-    assert response.json()["error_code"] == ENVIRONMENT_NOT_FOUND
+    assert response.json()["detail"]["error_code"] == ENVIRONMENT_NOT_FOUND
 
 
 # ---------------------------------------------------------------------------
@@ -351,7 +351,7 @@ def test_get_logs_returns_404_for_unknown_environment(client):
 
     # Then: 404 with ENVIRONMENT_NOT_FOUND
     assert response.status_code == 404
-    assert response.json()["error_code"] == ENVIRONMENT_NOT_FOUND
+    assert response.json()["detail"]["error_code"] == ENVIRONMENT_NOT_FOUND
 
 
 # ---------------------------------------------------------------------------

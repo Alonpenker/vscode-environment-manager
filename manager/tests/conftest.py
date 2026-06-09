@@ -1,5 +1,9 @@
+import os
 import pytest
 from unittest.mock import MagicMock, patch
+
+os.environ.setdefault("BASE_PUBLIC_URL", "http://localhost:8080")
+os.environ.setdefault("WORKSPACE_ROOT", "/workspaces")
 
 from fastapi.testclient import TestClient
 from services.docker_service import DockerService

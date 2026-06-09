@@ -14,13 +14,15 @@ class LogAction:
     ENVIRONMENT_REMOVED = "environment_removed"
     DOCKER_OPERATION_FAILED = "docker_operation_failed"
     INVALID_INPUT_REJECTED = "invalid_input_rejected"
+    REQUEST_FAILED = "request_failed"
+    UNHANDLED_EXCEPTION = "unhandled_exception"
     HEALTH_CHECK_RESULT = "health_check_result"
 
 
 class _StructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-        action = getattr(record, "action", "")
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        action = getattr(record, "action", record.getMessage())
         context = getattr(record, "context", {})
         return f"{ts} | {record.name} | {record.levelname} | {action} | {json.dumps(context)}"
 
@@ -37,16 +39,5 @@ def get_logger(name: str = "API") -> logging.Logger:
 
 
 def log(logger: logging.Logger, level: str, action: str, context: dict) -> None:
-    log_method = getattr(logger, level.lower(), logger.info)
-    record = logging.LogRecord(
-        name=logger.name,
-        level=getattr(logging, level.upper(), logging.INFO),
-        pathname="",
-        lineno=0,
-        msg="",
-        args=(),
-        exc_info=None,
-    )
-    record.action = action
-    record.context = context
-    logger.handle(record)
+    lvl = getattr(logging, level.upper(), logging.INFO)
+    logger.log(lvl, action, extra={"action": action, "context": context})

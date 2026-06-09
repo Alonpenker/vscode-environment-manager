@@ -1,14 +1,10 @@
 FROM python:3.12-slim
 
-WORKDIR /app
+WORKDIR /manager
 
-RUN pip install uv
+RUN pip install --no-cache-dir uv
 
-COPY pyproject.toml .
-RUN uv pip install --system -r pyproject.toml
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-COPY app/ ./app/
-
-ENV PYTHONPATH=/app/app
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY app/ ./

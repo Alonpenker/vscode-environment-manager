@@ -5,8 +5,7 @@ from services.docker_service import DockerService
 
 router = APIRouter()
 
-
-@router.get("/api/health", response_model=HealthResponse)
+@router.get("/health", response_model=HealthResponse)
 def health_check():
     docker_ok = DockerService.check_docker_available()
     network_ok = DockerService.check_network_available()

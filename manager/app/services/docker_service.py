@@ -1,5 +1,7 @@
 from __future__ import annotations
+import time
 import docker
+from docker.models.containers import Container
 import docker.errors
 from configs.app_settings import settings
 from schemas.environment import ContainerInfo, NetworkInfo, EnvironmentStatus, WorkspaceInfo
@@ -31,7 +33,7 @@ class DockerService:
             raise DockerOperationError(f"Failed to ensure network: {e}")
 
     @staticmethod
-    def get_container_by_id(env_id: str) -> docker.models.containers.Container | None:
+    def get_container_by_id(env_id: str) -> Container | None:
         try:
             name = f"{DockerService.container_name_prefix}{env_id}"
             return DockerService._get_client().containers.get(name)
@@ -41,7 +43,7 @@ class DockerService:
             raise DockerOperationError(f"Failed to get container: {e}")
 
     @staticmethod
-    def list_managed_containers() -> list[docker.models.containers.Container]:
+    def list_managed_containers() -> list[Container]:
         try:
             label = f"{DockerService.env_label_prefix}.managed=true"
             return DockerService._get_client().containers.list(all=True, filters={"label": label})
@@ -52,7 +54,7 @@ class DockerService:
     def create_container(
         env_id: str,
         workspace_info: WorkspaceInfo,
-    ) -> docker.models.containers.Container:
+    ) -> Container:
         try:
             name = f"{DockerService.container_name_prefix}{env_id}"
             labels = {
@@ -66,7 +68,7 @@ class DockerService:
                 command=f"--base-path /env/{env_id}/",
                 volumes={
                     workspace_info.resolved_host_path: {
-                        "bind": "/home/workspace",
+                        "bind": workspace_info.container_path,
                         "mode": "rw",
                     }
                 },
@@ -78,21 +80,36 @@ class DockerService:
             raise DockerOperationError(f"Failed to create container: {e}")
 
     @staticmethod
-    def start_container(container: docker.models.containers.Container) -> None:
+    def start_container(container: Container) -> None:
         try:
             container.start()
         except docker.errors.DockerException as e:
             raise DockerOperationError(f"Failed to start container: {e}")
 
     @staticmethod
-    def stop_container(container: docker.models.containers.Container) -> None:
+    def wait_for_running(container: Container, timeout: int = 30) -> None:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            container.reload()
+            if container.status == "running":
+                return
+            if container.status in ("exited", "dead", "removing"):
+                exit_code = container.attrs.get("State", {}).get("ExitCode", 1)
+                raise DockerOperationError(
+                    f"Container exited unexpectedly with code {exit_code}"
+                )
+            time.sleep(1)
+        raise DockerOperationError(f"Container did not reach running state within {timeout}s")
+
+    @staticmethod
+    def stop_container(container: Container) -> None:
         try:
             container.stop()
         except docker.errors.DockerException as e:
             raise DockerOperationError(f"Failed to stop container: {e}")
 
     @staticmethod
-    def remove_container(container: docker.models.containers.Container) -> None:
+    def remove_container(container: Container) -> None:
         try:
             container.reload()
             if container.status == "running":
@@ -102,7 +119,7 @@ class DockerService:
             raise DockerOperationError(f"Failed to remove container: {e}")
 
     @staticmethod
-    def inspect_container(container: docker.models.containers.Container) -> tuple[ContainerInfo, NetworkInfo]:
+    def inspect_container(container: Container) -> tuple[ContainerInfo, NetworkInfo]:
         try:
             container.reload()
             data = container.attrs
@@ -133,17 +150,20 @@ class DockerService:
             raise DockerOperationError(f"Failed to inspect container: {e}")
 
     @staticmethod
-    def normalize_status(container: docker.models.containers.Container) -> str:
+    def normalize_status(container: Container) -> str:
+        status = container.status
+        if status == "exited":
+            exit_code = container.attrs.get("State", {}).get("ExitCode", 0)
+            return EnvironmentStatus.STOPPED if exit_code == 0 else EnvironmentStatus.ERROR
         status_map = {
             "running": EnvironmentStatus.RUNNING,
-            "exited": EnvironmentStatus.STOPPED,
             "created": EnvironmentStatus.CREATING,
-            "paused": EnvironmentStatus.STOPPED,
+            "paused": EnvironmentStatus.RUNNING,
             "restarting": EnvironmentStatus.CREATING,
             "dead": EnvironmentStatus.ERROR,
             "removing": EnvironmentStatus.ERROR,
         }
-        return status_map.get(container.status, EnvironmentStatus.ERROR)
+        return status_map.get(status, EnvironmentStatus.ERROR)
 
     @staticmethod
     def check_docker_available() -> bool:

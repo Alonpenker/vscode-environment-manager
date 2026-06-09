@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      BASE_PUBLIC_URL: http://localhost:8080
+      WORKSPACE_ROOT: /tmp/workspaces
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv and ruff
+        run: pip install uv ruff
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra test
+        working-directory: manager
+
+      - name: Lint
+        run: ruff check manager/app manager/tests
+
+      - name: Format check
+        run: ruff format --check manager/app manager/tests
+
+      - name: Run tests
+        run: uv run pytest
+        working-directory: manager
+
+      - name: Validate docker compose config
+        run: docker compose config
+
+      - name: Build manager image
+        run: docker compose build manager

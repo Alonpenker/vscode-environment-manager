@@ -18,6 +18,7 @@ from schemas.errors import (
 def test_resolve_and_validate_returns_workspace_info_for_valid_directory(tmp_path, monkeypatch):
     # Given: a real directory under the workspace root
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
+    monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
     demo = tmp_path / "demo"
     demo.mkdir()
 
@@ -38,6 +39,7 @@ def test_resolve_and_validate_returns_workspace_info_for_valid_directory(tmp_pat
 def test_resolve_and_validate_raises_not_found_for_missing_directory(tmp_path, monkeypatch):
     # Given: workspace root contains no "nonexistent" directory
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
+    monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
 
     # When / Then: validation raises WORKSPACE_NOT_FOUND
     with pytest.raises(WorkspaceValidationError) as exc_info:
@@ -50,6 +52,7 @@ def test_resolve_and_validate_raises_not_found_for_missing_directory(tmp_path, m
 def test_resolve_and_validate_raises_not_a_directory_for_file_path(tmp_path, monkeypatch):
     # Given: workspace root contains a file (not a directory)
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
+    monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
     (tmp_path / "README.md").write_text("hello")
 
     # When / Then: validation raises WORKSPACE_NOT_A_DIRECTORY
@@ -63,6 +66,7 @@ def test_resolve_and_validate_raises_not_a_directory_for_file_path(tmp_path, mon
 def test_resolve_and_validate_raises_path_traversal_for_parent_escape(tmp_path, monkeypatch):
     # Given: workspace root is set to tmp_path
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
+    monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
 
     # When / Then: attempting to escape via "../.." raises WORKSPACE_PATH_TRAVERSAL
     with pytest.raises(WorkspaceValidationError) as exc_info:
@@ -80,6 +84,7 @@ def test_resolve_and_validate_raises_path_traversal_for_parent_escape(tmp_path, 
 def test_different_mount_folders_produce_different_environment_ids(tmp_path, monkeypatch):
     # Given: two different directories under the workspace root
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
+    monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
     (tmp_path / "demo").mkdir()
     (tmp_path / "api").mkdir()
 
@@ -98,6 +103,7 @@ def test_different_mount_folders_produce_different_environment_ids(tmp_path, mon
 def test_same_path_expressed_differently_produces_same_environment_id(tmp_path, monkeypatch):
     # Given: one directory reachable as "demo" and as "./demo"
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
+    monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
     (tmp_path / "demo").mkdir()
 
     # When: both expressions are resolved

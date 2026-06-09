@@ -1,11 +1,17 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):
-    base_public_url: str = "http://localhost"
-    workspace_root: str = "./workspaces"
-    managed_network_name: str = "vscode-manager-net"
+class AppSettings:
+    API_PREFIX = "/api"
+    TITLE = "VS Code Environment Manager"
 
+
+class Settings(BaseSettings):
+    base_public_url: str
+    workspace_root: str
+
+    managed_network_name: str = 'vscode-manager-net'
+    workspace_container_root: str = "/workspaces"
     vscode_image: str = "gitpod/openvscode-server:latest"
     vscode_container_port: int = 3000
     container_name_prefix: str = "vscode-env-"
