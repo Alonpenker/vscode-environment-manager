@@ -17,7 +17,7 @@ services:
 
   manager:
     build: ./manager
-    command: ["uv", "run", "--no-sync", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${WORKSPACE_ROOT}:${WORKSPACE_CONTAINER_ROOT:-/workspaces}

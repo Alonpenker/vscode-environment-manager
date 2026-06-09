@@ -1,9 +1,7 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from services.environment_service import EnvironmentService
-from schemas.environment import Environment, EnvironmentStatus
-from schemas.errors import (
+from app.services.environment_service import EnvironmentService
+from app.schemas.errors import (
     WorkspaceValidationError,
     EnvironmentConflictError,
     EnvironmentNotFoundError,
@@ -29,9 +27,13 @@ ENV_ID = "abc12345"
 
 def test_create_environment_returns_200_with_running_status_and_url(client):
     # Given: workspace is valid, no existing container
-    response_data = make_operation_response(ENV_ID, status="running", operation="create")
+    response_data = make_operation_response(
+        ENV_ID, status="running", operation="create"
+    )
 
-    with patch.object(EnvironmentService, "create_or_reuse", return_value=response_data):
+    with patch.object(
+        EnvironmentService, "create_or_reuse", return_value=response_data
+    ):
         # When: create request is sent
         response = client.post("/api/environments", json={"mount_folder": "demo"})
 
@@ -47,10 +49,15 @@ def test_create_environment_returns_200_with_running_status_and_url(client):
 def test_create_environment_reuses_already_running_container(client):
     # Given: a container for the same path is already running
     response_data = make_operation_response(
-        ENV_ID, status="running", operation="create_or_reuse", message="Environment already running"
+        ENV_ID,
+        status="running",
+        operation="create_or_reuse",
+        message="Environment already running",
     )
 
-    with patch.object(EnvironmentService, "create_or_reuse", return_value=response_data):
+    with patch.object(
+        EnvironmentService, "create_or_reuse", return_value=response_data
+    ):
         # When: create is called again for the same folder
         response = client.post("/api/environments", json={"mount_folder": "demo"})
 
@@ -64,10 +71,15 @@ def test_create_environment_reuses_already_running_container(client):
 def test_create_environment_restarts_stopped_container(client):
     # Given: a container for the path exists but is stopped
     response_data = make_operation_response(
-        ENV_ID, status="running", operation="create_or_reuse", message="Environment restarted"
+        ENV_ID,
+        status="running",
+        operation="create_or_reuse",
+        message="Environment restarted",
     )
 
-    with patch.object(EnvironmentService, "create_or_reuse", return_value=response_data):
+    with patch.object(
+        EnvironmentService, "create_or_reuse", return_value=response_data
+    ):
         # When: create is called for the same folder
         response = client.post("/api/environments", json={"mount_folder": "demo"})
 
@@ -90,7 +102,9 @@ def test_create_environment_returns_400_for_nonexistent_path(client):
         side_effect=WorkspaceValidationError("not found", WORKSPACE_NOT_FOUND),
     ):
         # When: create is called with a missing folder
-        response = client.post("/api/environments", json={"mount_folder": "nonexistent"})
+        response = client.post(
+            "/api/environments", json={"mount_folder": "nonexistent"}
+        )
 
     # Then: 400 with WORKSPACE_NOT_FOUND
     assert response.status_code == 400
@@ -120,7 +134,9 @@ def test_create_environment_returns_400_for_file_instead_of_directory(client):
         side_effect=WorkspaceValidationError("not a dir", WORKSPACE_NOT_A_DIRECTORY),
     ):
         # When: create is called with a file path
-        response = client.post("/api/environments", json={"mount_folder": "demo/README.md"})
+        response = client.post(
+            "/api/environments", json={"mount_folder": "demo/README.md"}
+        )
 
     # Then: 400 with WORKSPACE_NOT_A_DIRECTORY
     assert response.status_code == 400
@@ -189,7 +205,9 @@ def test_list_environments_includes_running_environment(client):
 # ---------------------------------------------------------------------------
 
 
-def test_get_environment_returns_full_details_including_container_workspace_network(client):
+def test_get_environment_returns_full_details_including_container_workspace_network(
+    client,
+):
     # Given: an existing environment
     env = make_operation_response(ENV_ID).environment
 
@@ -228,9 +246,13 @@ def test_get_environment_returns_404_for_unknown_id(client):
 
 def test_stop_environment_returns_200(client):
     # Given: a running environment
-    response_data = make_operation_response(ENV_ID, status="stopped", operation="stop", message="Environment stopped")
+    response_data = make_operation_response(
+        ENV_ID, status="stopped", operation="stop", message="Environment stopped"
+    )
 
-    with patch.object(EnvironmentService, "stop_environment", return_value=response_data):
+    with patch.object(
+        EnvironmentService, "stop_environment", return_value=response_data
+    ):
         # When: stop is called
         response = client.post(f"/api/environments/{ENV_ID}/stop")
 
@@ -244,7 +266,9 @@ def test_stop_environment_returns_409_when_already_stopped(client):
     with patch.object(
         EnvironmentService,
         "stop_environment",
-        side_effect=EnvironmentConflictError("already stopped", ENVIRONMENT_ALREADY_STOPPED),
+        side_effect=EnvironmentConflictError(
+            "already stopped", ENVIRONMENT_ALREADY_STOPPED
+        ),
     ):
         # When: stop is called again
         response = client.post(f"/api/environments/{ENV_ID}/stop")
@@ -261,9 +285,13 @@ def test_stop_environment_returns_409_when_already_stopped(client):
 
 def test_start_environment_returns_200(client):
     # Given: a stopped environment
-    response_data = make_operation_response(ENV_ID, status="running", operation="start", message="Environment started")
+    response_data = make_operation_response(
+        ENV_ID, status="running", operation="start", message="Environment started"
+    )
 
-    with patch.object(EnvironmentService, "start_environment", return_value=response_data):
+    with patch.object(
+        EnvironmentService, "start_environment", return_value=response_data
+    ):
         # When: start is called
         response = client.post(f"/api/environments/{ENV_ID}/start")
 
@@ -277,7 +305,9 @@ def test_start_environment_returns_409_when_already_running(client):
     with patch.object(
         EnvironmentService,
         "start_environment",
-        side_effect=EnvironmentConflictError("already running", ENVIRONMENT_ALREADY_RUNNING),
+        side_effect=EnvironmentConflictError(
+            "already running", ENVIRONMENT_ALREADY_RUNNING
+        ),
     ):
         # When: start is called again
         response = client.post(f"/api/environments/{ENV_ID}/start")
@@ -294,10 +324,14 @@ def test_start_environment_returns_409_when_already_running(client):
 
 def test_delete_environment_returns_200(client):
     # Given: an existing environment
-    response_data = make_operation_response(ENV_ID, operation="remove", message="Environment removed")
+    response_data = make_operation_response(
+        ENV_ID, operation="remove", message="Environment removed"
+    )
     response_data.environment = None
 
-    with patch.object(EnvironmentService, "remove_environment", return_value=response_data):
+    with patch.object(
+        EnvironmentService, "remove_environment", return_value=response_data
+    ):
         # When: delete is called
         response = client.delete(f"/api/environments/{ENV_ID}")
 
@@ -328,7 +362,11 @@ def test_delete_unknown_environment_returns_404(client):
 
 def test_get_logs_returns_log_string_for_running_environment(client):
     # Given: an existing environment with log output
-    with patch.object(EnvironmentService, "get_logs", return_value="VS Code server started on port 3000"):
+    with patch.object(
+        EnvironmentService,
+        "get_logs",
+        return_value="VS Code server started on port 3000",
+    ):
         # When: logs are requested
         response = client.get(f"/api/environments/{ENV_ID}/logs")
 
@@ -361,7 +399,9 @@ def test_get_logs_returns_404_for_unknown_environment(client):
 
 def test_cleanup_removes_stopped_environments_and_returns_success(client):
     # Given: one stopped environment exists
-    response_data = make_operation_response(ENV_ID, operation="cleanup", message="Removed 1 environment(s): abc12345")
+    response_data = make_operation_response(
+        ENV_ID, operation="cleanup", message="Removed 1 environment(s): abc12345"
+    )
     response_data.environment = None
 
     with patch.object(EnvironmentService, "cleanup", return_value=response_data):

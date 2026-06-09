@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     base_public_url: str
     workspace_root: str
 
-    managed_network_name: str = 'vscode-manager-net'
+    managed_network_name: str = "vscode-manager-net"
     workspace_container_root: str = "/workspaces"
     vscode_image: str = "gitpod/openvscode-server:latest"
     vscode_container_port: int = 3000

@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from schemas.environment import WorkspaceInfo
-from services.docker_service import DockerService
+from app.schemas.environment import WorkspaceInfo
+from app.services.docker_service import DockerService
 
 
 def test_create_container_uses_workspace_container_path_for_bind():

@@ -1,10 +1,13 @@
 from fastapi import HTTPException, Request, status
-from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
+from fastapi.exception_handlers import (
+    http_exception_handler,
+    request_validation_exception_handler,
+)
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import Response
 
-from configs.logging import get_logger, log, LogAction
-from schemas.errors import AppError
+from app.configs.logging import get_logger, log, LogAction
+from app.schemas.errors import AppError
 
 logger = get_logger("API")
 

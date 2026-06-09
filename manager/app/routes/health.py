@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter
-from schemas.health import HealthResponse
-from services.docker_service import DockerService
+
+from app.schemas.health import HealthResponse
+from app.services.docker_service import DockerService
 
 router = APIRouter()
+
 
 @router.get("/health", response_model=HealthResponse)
 def health_check():

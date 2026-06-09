@@ -1,11 +1,17 @@
-from __future__ import annotations
 import time
 import docker
+import urllib.request
 from docker.models.containers import Container
 import docker.errors
-from configs.app_settings import settings
-from schemas.environment import ContainerInfo, NetworkInfo, EnvironmentStatus, WorkspaceInfo
-from schemas.errors import DockerOperationError
+
+from app.configs.app_settings import settings
+from app.schemas.environment import (
+    ContainerInfo,
+    NetworkInfo,
+    EnvironmentStatus,
+    WorkspaceInfo,
+)
+from app.schemas.errors import DockerOperationError
 
 
 class DockerService:
@@ -28,7 +34,9 @@ class DockerService:
             client = DockerService._get_client()
             existing = client.networks.list(names=[DockerService.managed_network_name])
             if not existing:
-                client.networks.create(DockerService.managed_network_name, driver="bridge")
+                client.networks.create(
+                    DockerService.managed_network_name, driver="bridge"
+                )
         except docker.errors.DockerException as e:
             raise DockerOperationError(f"Failed to ensure network: {e}")
 
@@ -46,7 +54,9 @@ class DockerService:
     def list_managed_containers() -> list[Container]:
         try:
             label = f"{DockerService.env_label_prefix}.managed=true"
-            return DockerService._get_client().containers.list(all=True, filters={"label": label})
+            return DockerService._get_client().containers.list(
+                all=True, filters={"label": label}
+            )
         except docker.errors.DockerException as e:
             raise DockerOperationError(f"Failed to list containers: {e}")
 
@@ -65,7 +75,7 @@ class DockerService:
             return DockerService._get_client().containers.create(
                 image=DockerService.vscode_image,
                 name=name,
-                command=f"--base-path /env/{env_id}/",
+                command=f"--server-base-path /env/{env_id}/",
                 volumes={
                     workspace_info.resolved_host_path: {
                         "bind": workspace_info.container_path,
@@ -87,6 +97,23 @@ class DockerService:
             raise DockerOperationError(f"Failed to start container: {e}")
 
     @staticmethod
+    def wait_for_http_ready(container: Container, timeout: int = 60) -> None:
+        container.reload()
+        networks = container.attrs["NetworkSettings"]["Networks"]
+        ip = networks.get(DockerService.managed_network_name, {}).get("IPAddress", "")
+        if not ip:
+            raise DockerOperationError("Container has no IP address on managed network")
+        url = f"http://{ip}:{DockerService.vscode_container_port}/"
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                urllib.request.urlopen(url, timeout=2)
+                return
+            except Exception:
+                time.sleep(1)
+        raise DockerOperationError(f"VS Code did not become HTTP-ready within {timeout}s")
+
+    @staticmethod
     def wait_for_running(container: Container, timeout: int = 30) -> None:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
@@ -99,7 +126,9 @@ class DockerService:
                     f"Container exited unexpectedly with code {exit_code}"
                 )
             time.sleep(1)
-        raise DockerOperationError(f"Container did not reach running state within {timeout}s")
+        raise DockerOperationError(
+            f"Container did not reach running state within {timeout}s"
+        )
 
     @staticmethod
     def stop_container(container: Container) -> None:
@@ -154,7 +183,12 @@ class DockerService:
         status = container.status
         if status == "exited":
             exit_code = container.attrs.get("State", {}).get("ExitCode", 0)
-            return EnvironmentStatus.STOPPED if exit_code == 0 else EnvironmentStatus.ERROR
+            stopped_codes = {0, 137, 143}
+            return (
+                EnvironmentStatus.STOPPED
+                if exit_code in stopped_codes
+                else EnvironmentStatus.ERROR
+            )
         status_map = {
             "running": EnvironmentStatus.RUNNING,
             "created": EnvironmentStatus.CREATING,
@@ -176,7 +210,9 @@ class DockerService:
     @staticmethod
     def check_network_available() -> bool:
         try:
-            nets = DockerService._get_client().networks.list(names=[DockerService.managed_network_name])
+            nets = DockerService._get_client().networks.list(
+                names=[DockerService.managed_network_name]
+            )
             return bool(nets)
         except Exception:
             return False
@@ -188,6 +224,10 @@ class DockerService:
             if container is None:
                 return ""
             logs = container.logs(tail=tail)
-            return logs.decode("utf-8", errors="replace") if isinstance(logs, bytes) else str(logs)
+            return (
+                logs.decode("utf-8", errors="replace")
+                if isinstance(logs, bytes)
+                else str(logs)
+            )
         except docker.errors.DockerException as e:
             raise DockerOperationError(f"Failed to get logs: {e}")

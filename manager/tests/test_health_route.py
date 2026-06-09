@@ -1,7 +1,6 @@
-import pytest
 from unittest.mock import patch
 
-from services.docker_service import DockerService
+from app.services.docker_service import DockerService
 
 
 # ---------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 import pytest
 
-from services.workspace_service import WorkspaceService
-from services.ids_service import IdsService
-from schemas.errors import (
+from app.services.workspace_service import WorkspaceService
+from app.services.ids_service import IdsService
+from app.schemas.errors import (
     WorkspaceValidationError,
     WORKSPACE_NOT_FOUND,
     WORKSPACE_NOT_A_DIRECTORY,
@@ -15,7 +15,9 @@ from schemas.errors import (
 # ---------------------------------------------------------------------------
 
 
-def test_resolve_and_validate_returns_workspace_info_for_valid_directory(tmp_path, monkeypatch):
+def test_resolve_and_validate_returns_workspace_info_for_valid_directory(
+    tmp_path, monkeypatch
+):
     # Given: a real directory under the workspace root
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
     monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
@@ -36,7 +38,9 @@ def test_resolve_and_validate_returns_workspace_info_for_valid_directory(tmp_pat
 # ---------------------------------------------------------------------------
 
 
-def test_resolve_and_validate_raises_not_found_for_missing_directory(tmp_path, monkeypatch):
+def test_resolve_and_validate_raises_not_found_for_missing_directory(
+    tmp_path, monkeypatch
+):
     # Given: workspace root contains no "nonexistent" directory
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
     monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
@@ -49,7 +53,9 @@ def test_resolve_and_validate_raises_not_found_for_missing_directory(tmp_path, m
     assert exc_info.value.http_status == 400
 
 
-def test_resolve_and_validate_raises_not_a_directory_for_file_path(tmp_path, monkeypatch):
+def test_resolve_and_validate_raises_not_a_directory_for_file_path(
+    tmp_path, monkeypatch
+):
     # Given: workspace root contains a file (not a directory)
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
     monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
@@ -63,7 +69,9 @@ def test_resolve_and_validate_raises_not_a_directory_for_file_path(tmp_path, mon
     assert exc_info.value.http_status == 400
 
 
-def test_resolve_and_validate_raises_path_traversal_for_parent_escape(tmp_path, monkeypatch):
+def test_resolve_and_validate_raises_path_traversal_for_parent_escape(
+    tmp_path, monkeypatch
+):
     # Given: workspace root is set to tmp_path
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
     monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
@@ -81,7 +89,9 @@ def test_resolve_and_validate_raises_path_traversal_for_parent_escape(tmp_path, 
 # ---------------------------------------------------------------------------
 
 
-def test_different_mount_folders_produce_different_environment_ids(tmp_path, monkeypatch):
+def test_different_mount_folders_produce_different_environment_ids(
+    tmp_path, monkeypatch
+):
     # Given: two different directories under the workspace root
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
     monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))
@@ -100,7 +110,9 @@ def test_different_mount_folders_produce_different_environment_ids(tmp_path, mon
     assert id_demo != id_api
 
 
-def test_same_path_expressed_differently_produces_same_environment_id(tmp_path, monkeypatch):
+def test_same_path_expressed_differently_produces_same_environment_id(
+    tmp_path, monkeypatch
+):
     # Given: one directory reachable as "demo" and as "./demo"
     monkeypatch.setattr(WorkspaceService, "workspace_root", str(tmp_path))
     monkeypatch.setattr(WorkspaceService, "workspace_container_root", str(tmp_path))

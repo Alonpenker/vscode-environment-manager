@@ -6,9 +6,9 @@ os.environ.setdefault("BASE_PUBLIC_URL", "http://localhost:8080")
 os.environ.setdefault("WORKSPACE_ROOT", "/workspaces")
 
 from fastapi.testclient import TestClient
-from services.docker_service import DockerService
-from main import app
-from schemas.environment import (
+from app.services.docker_service import DockerService
+from app.main import app
+from app.schemas.environment import (
     ContainerInfo,
     Environment,
     NetworkInfo,
@@ -24,7 +24,9 @@ def client():
             yield c
 
 
-def make_mock_container(env_id: str = "abc12345", status: str = "running", workspace: str = "demo"):
+def make_mock_container(
+    env_id: str = "abc12345", status: str = "running", workspace: str = "demo"
+):
     container = MagicMock()
     container.status = status
     container.name = f"vscode-env-{env_id}"

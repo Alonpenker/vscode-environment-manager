@@ -1,9 +1,9 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from services.environment_service import EnvironmentService
-from services.docker_service import DockerService
-from schemas.environment import (
+from app.services.environment_service import EnvironmentService
+from app.services.docker_service import DockerService
+from app.schemas.environment import (
     CreateEnvironmentRequest,
     EnvironmentStatus,
     WorkspaceInfo,
@@ -11,7 +11,7 @@ from schemas.environment import (
     NetworkInfo,
     Environment,
 )
-from schemas.errors import (
+from app.schemas.errors import (
     EnvironmentConflictError,
     EnvironmentNotFoundError,
     EnvironmentLimitError,
@@ -67,9 +67,17 @@ def test_create_or_reuse_creates_new_environment_when_none_exists():
         patch.object(DockerService, "create_container", return_value=container),
         patch.object(DockerService, "start_container"),
         patch.object(DockerService, "wait_for_running"),
-        patch("services.workspace_service.WorkspaceService.resolve_and_validate", return_value=WORKSPACE_INFO),
-        patch("services.ids_service.IdsService.compute_environment_id", return_value=ENV_ID),
-        patch.object(EnvironmentService, "_build_environment", return_value=_make_env("running")),
+        patch(
+            "app.services.workspace_service.WorkspaceService.resolve_and_validate",
+            return_value=WORKSPACE_INFO,
+        ),
+        patch(
+            "app.services.ids_service.IdsService.compute_environment_id",
+            return_value=ENV_ID,
+        ),
+        patch.object(
+            EnvironmentService, "_build_environment", return_value=_make_env("running")
+        ),
     ):
         # When: create_or_reuse is called
         response = EnvironmentService.create_or_reuse(request)
@@ -87,10 +95,20 @@ def test_create_or_reuse_returns_existing_environment_when_already_running():
 
     with (
         patch.object(DockerService, "get_container_by_id", return_value=container),
-        patch.object(DockerService, "normalize_status", return_value=EnvironmentStatus.RUNNING),
-        patch("services.workspace_service.WorkspaceService.resolve_and_validate", return_value=WORKSPACE_INFO),
-        patch("services.ids_service.IdsService.compute_environment_id", return_value=ENV_ID),
-        patch.object(EnvironmentService, "_build_environment", return_value=_make_env("running")),
+        patch.object(
+            DockerService, "normalize_status", return_value=EnvironmentStatus.RUNNING
+        ),
+        patch(
+            "app.services.workspace_service.WorkspaceService.resolve_and_validate",
+            return_value=WORKSPACE_INFO,
+        ),
+        patch(
+            "app.services.ids_service.IdsService.compute_environment_id",
+            return_value=ENV_ID,
+        ),
+        patch.object(
+            EnvironmentService, "_build_environment", return_value=_make_env("running")
+        ),
     ):
         # When: create_or_reuse is called for the same folder
         response = EnvironmentService.create_or_reuse(request)
@@ -108,12 +126,22 @@ def test_create_or_reuse_restarts_stopped_container():
 
     with (
         patch.object(DockerService, "get_container_by_id", return_value=container),
-        patch.object(DockerService, "normalize_status", return_value=EnvironmentStatus.STOPPED),
+        patch.object(
+            DockerService, "normalize_status", return_value=EnvironmentStatus.STOPPED
+        ),
         patch.object(DockerService, "start_container") as mock_start,
         patch.object(DockerService, "wait_for_running"),
-        patch("services.workspace_service.WorkspaceService.resolve_and_validate", return_value=WORKSPACE_INFO),
-        patch("services.ids_service.IdsService.compute_environment_id", return_value=ENV_ID),
-        patch.object(EnvironmentService, "_build_environment", return_value=_make_env("running")),
+        patch(
+            "app.services.workspace_service.WorkspaceService.resolve_and_validate",
+            return_value=WORKSPACE_INFO,
+        ),
+        patch(
+            "app.services.ids_service.IdsService.compute_environment_id",
+            return_value=ENV_ID,
+        ),
+        patch.object(
+            EnvironmentService, "_build_environment", return_value=_make_env("running")
+        ),
     ):
         # When: create_or_reuse is called
         response = EnvironmentService.create_or_reuse(request)
@@ -132,8 +160,14 @@ def test_create_or_reuse_raises_limit_error_when_max_environments_reached():
     with (
         patch.object(DockerService, "get_container_by_id", return_value=None),
         patch.object(DockerService, "list_managed_containers", return_value=existing),
-        patch("services.workspace_service.WorkspaceService.resolve_and_validate", return_value=WORKSPACE_INFO),
-        patch("services.ids_service.IdsService.compute_environment_id", return_value=ENV_ID),
+        patch(
+            "app.services.workspace_service.WorkspaceService.resolve_and_validate",
+            return_value=WORKSPACE_INFO,
+        ),
+        patch(
+            "app.services.ids_service.IdsService.compute_environment_id",
+            return_value=ENV_ID,
+        ),
         patch.object(EnvironmentService, "max_environments", 10),
     ):
         # When / Then: creating one more raises EnvironmentLimitError
@@ -152,7 +186,9 @@ def test_stop_environment_raises_conflict_when_already_stopped():
 
     with (
         patch.object(DockerService, "get_container_by_id", return_value=container),
-        patch.object(DockerService, "normalize_status", return_value=EnvironmentStatus.STOPPED),
+        patch.object(
+            DockerService, "normalize_status", return_value=EnvironmentStatus.STOPPED
+        ),
     ):
         # When / Then: stopping raises ENVIRONMENT_ALREADY_STOPPED
         with pytest.raises(EnvironmentConflictError) as exc_info:
@@ -172,7 +208,9 @@ def test_start_environment_raises_conflict_when_already_running():
 
     with (
         patch.object(DockerService, "get_container_by_id", return_value=container),
-        patch.object(DockerService, "normalize_status", return_value=EnvironmentStatus.RUNNING),
+        patch.object(
+            DockerService, "normalize_status", return_value=EnvironmentStatus.RUNNING
+        ),
     ):
         # When / Then: starting raises ENVIRONMENT_ALREADY_RUNNING
         with pytest.raises(EnvironmentConflictError) as exc_info:

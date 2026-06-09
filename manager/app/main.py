@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from configs.app_settings import AppSettings
-from configs.logging import get_logger, log, LogAction
-from exceptions.exception_handler import handle_exceptions
-from services.docker_service import DockerService
-from routes import health_router, environments_router
-from schemas.errors import AppError
+
+from app.configs.app_settings import AppSettings
+from app.configs.logging import get_logger, log, LogAction
+from app.exceptions.exception_handler import handle_exceptions
+from app.services.docker_service import DockerService
+from app.routes import health_router, environments_router
+from app.schemas.errors import AppError
 
 logger = get_logger("API")
 
@@ -37,8 +38,13 @@ app.include_router(api_router)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    log(logger, "info", LogAction.REQUEST_RECEIVED, {
-        "method": request.method,
-        "path": str(request.url.path),
-    })
+    log(
+        logger,
+        "info",
+        LogAction.REQUEST_RECEIVED,
+        {
+            "method": request.method,
+            "path": str(request.url.path),
+        },
+    )
     return await call_next(request)
