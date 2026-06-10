@@ -67,6 +67,7 @@ def test_create_or_reuse_creates_new_environment_when_none_exists():
         patch.object(DockerService, "create_container", return_value=container),
         patch.object(DockerService, "start_container"),
         patch.object(DockerService, "wait_for_running"),
+        patch.object(DockerService, "wait_for_http_ready"),
         patch(
             "app.services.workspace_service.WorkspaceService.resolve_and_validate",
             return_value=WORKSPACE_INFO,
@@ -131,6 +132,7 @@ def test_create_or_reuse_restarts_stopped_container():
         ),
         patch.object(DockerService, "start_container") as mock_start,
         patch.object(DockerService, "wait_for_running"),
+        patch.object(DockerService, "wait_for_http_ready"),
         patch(
             "app.services.workspace_service.WorkspaceService.resolve_and_validate",
             return_value=WORKSPACE_INFO,

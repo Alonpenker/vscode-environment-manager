@@ -111,7 +111,9 @@ class DockerService:
                 return
             except Exception:
                 time.sleep(1)
-        raise DockerOperationError(f"VS Code did not become HTTP-ready within {timeout}s")
+        raise DockerOperationError(
+            f"VS Code did not become HTTP-ready within {timeout}s"
+        )
 
     @staticmethod
     def wait_for_running(container: Container, timeout: int = 30) -> None:

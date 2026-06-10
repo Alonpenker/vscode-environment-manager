@@ -1,12 +1,12 @@
 name: vscode-environment-manager
 services:
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      additional_contexts:
+        frontend: ./frontend
     ports:
       - "8080:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/templates:/etc/nginx/templates:ro
     environment:
       - CONTAINER_NAME_PREFIX=${CONTAINER_NAME_PREFIX:-vscode-env-}
       - VSCODE_CONTAINER_PORT=${VSCODE_CONTAINER_PORT:-3000}

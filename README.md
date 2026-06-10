@@ -1,6 +1,12 @@
 # VS Code Web Environment Manager
 
-A local developer platform that creates browser-based VS Code environments backed by Docker containers. A single HTTP API lets you spin up, inspect, stop, and remove environments, each connected to a local workspace folder.
+A local developer platform that creates browser-based VS Code environments backed by Docker containers. A single HTTP API lets you spin up, inspect, stop, and remove environments, each connected to a local workspace folder. A React dashboard provides a visual interface over the same API.
+
+## Dashboard
+
+Once the stack is running, open the dashboard at **http://localhost:8080/**. From there you can launch new environments, monitor status, open VS Code, inspect details and logs, and clean up stopped environments.
+
+The dashboard is a static single-page app built with **React + TypeScript + Vite**, styled with **Tailwind CSS** and **shadcn/ui** primitives, animated with **Motion**, and backed by **TanStack Query** for server state. API responses are validated at runtime with **Zod**. It is served by the same Nginx container that proxies the API and the per-environment VS Code containers, so everything runs from a single origin.
 
 ## Prerequisites
 
@@ -19,11 +25,39 @@ cp .env.example .env
 
 ## Start
 
+Before starting, pull the VS Code Web image so the first environment creation doesn't time out:
+
+```bash
+docker pull gitpod/openvscode-server:latest
+```
+
+Then start the stack:
+
 ```bash
 docker compose up --build
 ```
 
-Nginx listens on `http://localhost:8080`. The manager API is not directly exposed.
+This single command builds both the manager API image and the Nginx image (which compiles the frontend in a multi-stage build) and starts the stack. Nginx listens on `http://localhost:8080` and serves the dashboard, the API under `/api/`, and the VS Code containers under `/env/{id}/`. The manager API is not directly exposed.
+
+## Local frontend development (optional)
+
+The dashboard is built and served automatically by `docker compose up --build`, so this step is only needed if you want hot-reloading while editing the UI.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite dev server proxies `/api` and `/env` (including WebSockets) to `http://localhost:8080`, so the running docker-compose stack must be up. Available scripts:
+
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Start the Vite dev server with API/env proxying |
+| `npm run build` | Type-check and produce a production build in `frontend/dist/` |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Run the TypeScript compiler with no emit |
+| `npm run test` | Run the Vitest unit/component suite |
 
 ## API
 
