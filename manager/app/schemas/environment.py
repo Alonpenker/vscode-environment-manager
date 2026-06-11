@@ -50,3 +50,7 @@ class OperationResponse(BaseModel):
     message: str
     environment: Environment | None = None
     error_code: str | None = None
+
+
+class LogsResponse(BaseModel):
+    logs: str

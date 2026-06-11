@@ -55,3 +55,9 @@ Bonus step to include additional files and features + small changes for better c
 - This file
 
 What I changed in AI output: NGINX template, splitted .gitignore and .dockerignore
+
+## Step 8: CLEANUP
+
+After a second code review, I decided to make some simplifications to the current application code, ran tests, and observed use cases like before to verify that all new changes don't break the app logic.
+
+What I changed in AI output: exception handler, environent service

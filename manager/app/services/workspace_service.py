@@ -9,7 +9,7 @@ from app.schemas.errors import (
     WORKSPACE_PATH_TRAVERSAL,
 )
 
-logger = get_logger("API")
+logger = get_logger()
 
 
 class WorkspaceService:

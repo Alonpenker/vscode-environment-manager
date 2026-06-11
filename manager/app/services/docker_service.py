@@ -61,17 +61,34 @@ class DockerService:
             raise DockerOperationError(f"Failed to list containers: {e}")
 
     @staticmethod
+    def _container_labels(env_id: str, workspace_info: WorkspaceInfo) -> dict:
+        return {
+            f"{DockerService.env_label_prefix}.managed": "true",
+            f"{DockerService.env_label_prefix}.env_id": env_id,
+            f"{DockerService.env_label_prefix}.workspace": workspace_info.requested_path,
+        }
+
+    @staticmethod
+    def _parse_network_info(data: dict, network_name: str) -> NetworkInfo:
+        net_data = (
+            data.get("NetworkSettings", {}).get("Networks", {}).get(network_name, {})
+        )
+        ip = net_data.get("IPAddress", "")
+        return NetworkInfo(
+            network_name=network_name,
+            network_id=net_data.get("NetworkID", ""),
+            ip_address=ip,
+            connected=bool(ip),
+        )
+
+    @staticmethod
     def create_container(
         env_id: str,
         workspace_info: WorkspaceInfo,
     ) -> Container:
         try:
             name = f"{DockerService.container_name_prefix}{env_id}"
-            labels = {
-                f"{DockerService.env_label_prefix}.managed": "true",
-                f"{DockerService.env_label_prefix}.env_id": env_id,
-                f"{DockerService.env_label_prefix}.workspace": workspace_info.requested_path,
-            }
+            labels = DockerService._container_labels(env_id, workspace_info)
             return DockerService._get_client().containers.create(
                 image=DockerService.vscode_image,
                 name=name,
@@ -162,18 +179,8 @@ class DockerService:
                 labels=data["Config"].get("Labels", {}),
             )
 
-            net_settings = data.get("NetworkSettings", {})
-            networks = net_settings.get("Networks", {})
-            net_data = networks.get(DockerService.managed_network_name, {})
-            network_id = net_data.get("NetworkID", "")
-            ip = net_data.get("IPAddress", "")
-            connected = bool(ip)
-
-            network_info = NetworkInfo(
-                network_name=DockerService.managed_network_name,
-                network_id=network_id,
-                ip_address=ip,
-                connected=connected,
+            network_info = DockerService._parse_network_info(
+                data, DockerService.managed_network_name
             )
 
             return container_info, network_info

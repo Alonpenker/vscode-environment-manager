@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from app.services.environment_service import EnvironmentService
+from app.schemas.environment import LogsResponse
 from app.schemas.errors import (
     WorkspaceValidationError,
     EnvironmentConflictError,
@@ -365,7 +366,7 @@ def test_get_logs_returns_log_string_for_running_environment(client):
     with patch.object(
         EnvironmentService,
         "get_logs",
-        return_value="VS Code server started on port 3000",
+        return_value=LogsResponse(logs="VS Code server started on port 3000"),
     ):
         # When: logs are requested
         response = client.get(f"/api/environments/{ENV_ID}/logs")

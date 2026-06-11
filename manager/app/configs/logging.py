@@ -8,6 +8,7 @@ class LogAction:
     WORKSPACE_VALIDATION_STARTED = "workspace_validation_started"
     WORKSPACE_VALIDATION_RESULT = "workspace_validation_result"
     ENVIRONMENT_CREATE_STARTED = "environment_create_started"
+    ENVIRONMENT_REUSED = "environment_reused"
     CONTAINER_CREATED = "container_created"
     CONTAINER_STARTED = "container_started"
     ENVIRONMENT_STOPPED = "environment_stopped"
@@ -21,7 +22,7 @@ class LogAction:
 
 class _StructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
         action = getattr(record, "action", record.getMessage())
         context = getattr(record, "context", {})
         return f"{ts} | {record.name} | {record.levelname} | {action} | {json.dumps(context)}"

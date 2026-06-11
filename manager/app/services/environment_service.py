@@ -8,6 +8,7 @@ from app.schemas.environment import (
     CreateEnvironmentRequest,
     Environment,
     EnvironmentStatus,
+    LogsResponse,
     OperationResponse,
     WorkspaceInfo,
     ContainerInfo,
@@ -25,7 +26,7 @@ from app.services.ids_service import IdsService
 from app.services.workspace_service import WorkspaceService
 from app.services.docker_service import DockerService
 
-logger = get_logger("API")
+logger = get_logger()
 
 
 class EnvironmentService:
@@ -61,9 +62,81 @@ class EnvironmentService:
         )
 
     @staticmethod
+    def _start_server(
+        env_id: str, container: Container, start_time: float | None = None
+    ) -> None:
+        DockerService.start_container(container)
+        DockerService.wait_for_running(container)
+        DockerService.wait_for_http_ready(container)
+        extra = (
+            {
+                "container_startup_duration_ms": int(
+                    (time.monotonic() - start_time) * 1000
+                )
+            }
+            if start_time is not None
+            else {}
+        )
+        log(
+            logger,
+            "info",
+            LogAction.CONTAINER_STARTED,
+            {
+                "environment_id": env_id,
+                "container_id": container.id[:12],
+                **extra,
+            },
+        )
+
+    @staticmethod
+    def _reuse_container(
+        env_id: str, container: Container, workspace_info: WorkspaceInfo
+    ) -> OperationResponse:
+        status = DockerService.normalize_status(container)
+        if status == EnvironmentStatus.ERROR:
+            raise DockerOperationError(
+                f"Container is in error state and cannot be started: {env_id}"
+            )
+        if status == EnvironmentStatus.RUNNING:
+            env = EnvironmentService._build_environment(
+                env_id, container, workspace_info
+            )
+            return OperationResponse(
+                success=True,
+                operation="create_or_reuse",
+                environment_id=env_id,
+                message="Environment already running",
+                environment=env,
+            )
+        EnvironmentService._start_server(env_id, container)
+        env = EnvironmentService._build_environment(env_id, container, workspace_info)
+        return OperationResponse(
+            success=True,
+            operation="create_or_reuse",
+            environment_id=env_id,
+            message="Environment restarted",
+            environment=env,
+        )
+
+    @staticmethod
     def create_or_reuse(request: CreateEnvironmentRequest) -> OperationResponse:
         workspace_info = WorkspaceService.resolve_and_validate(request.mount_folder)
         env_id = IdsService.compute_environment_id(workspace_info.resolved_host_path)
+
+        container = DockerService.get_container_by_id(env_id)
+        if container is not None:
+            log(
+                logger,
+                "info",
+                LogAction.ENVIRONMENT_REUSED,
+                {
+                    "environment_id": env_id,
+                    "mount_folder": request.mount_folder,
+                },
+            )
+            return EnvironmentService._reuse_container(
+                env_id, container, workspace_info
+            )
 
         log(
             logger,
@@ -74,49 +147,6 @@ class EnvironmentService:
                 "mount_folder": request.mount_folder,
             },
         )
-
-        container = DockerService.get_container_by_id(env_id)
-
-        if container is not None:
-            status = DockerService.normalize_status(container)
-            if status == EnvironmentStatus.RUNNING:
-                env = EnvironmentService._build_environment(
-                    env_id, container, workspace_info
-                )
-                return OperationResponse(
-                    success=True,
-                    operation="create_or_reuse",
-                    environment_id=env_id,
-                    message="Environment already running",
-                    environment=env,
-                )
-            elif status == EnvironmentStatus.ERROR:
-                raise DockerOperationError(
-                    f"Container is in error state and cannot be started: {env_id}"
-                )
-            else:
-                DockerService.start_container(container)
-                DockerService.wait_for_running(container)
-                DockerService.wait_for_http_ready(container)
-                log(
-                    logger,
-                    "info",
-                    LogAction.CONTAINER_STARTED,
-                    {
-                        "environment_id": env_id,
-                        "container_id": container.id[:12],
-                    },
-                )
-                env = EnvironmentService._build_environment(
-                    env_id, container, workspace_info
-                )
-                return OperationResponse(
-                    success=True,
-                    operation="create_or_reuse",
-                    environment_id=env_id,
-                    message="Environment restarted",
-                    environment=env,
-                )
 
         managed = DockerService.list_managed_containers()
         if len(managed) >= EnvironmentService.max_environments:
@@ -137,23 +167,10 @@ class EnvironmentService:
             },
         )
         try:
-            DockerService.start_container(container)
-            DockerService.wait_for_running(container)
-            DockerService.wait_for_http_ready(container)
+            EnvironmentService._start_server(env_id, container, start_time)
         except Exception:
             DockerService.remove_container(container)
             raise
-        elapsed_ms = int((time.monotonic() - start_time) * 1000)
-        log(
-            logger,
-            "info",
-            LogAction.CONTAINER_STARTED,
-            {
-                "environment_id": env_id,
-                "container_id": container.id[:12],
-                "container_startup_duration_ms": elapsed_ms,
-            },
-        )
         env = EnvironmentService._build_environment(env_id, container, workspace_info)
         return OperationResponse(
             success=True,
@@ -220,17 +237,7 @@ class EnvironmentService:
             raise EnvironmentConflictError(
                 f"Environment already running: {env_id}", ENVIRONMENT_ALREADY_RUNNING
             )
-        DockerService.start_container(container)
-        DockerService.wait_for_running(container)
-        log(
-            logger,
-            "info",
-            LogAction.CONTAINER_STARTED,
-            {
-                "environment_id": env_id,
-                "container_id": container.id[:12],
-            },
-        )
+        EnvironmentService._start_server(env_id, container)
         workspace_info = EnvironmentService._reconstruct_workspace_info(
             container.labels or {}
         )
@@ -299,11 +306,11 @@ class EnvironmentService:
         )
 
     @staticmethod
-    def get_logs(env_id: str) -> str:
+    def get_logs(env_id: str) -> LogsResponse:
         container = DockerService.get_container_by_id(env_id)
         if container is None:
             raise EnvironmentNotFoundError(f"Environment not found: {env_id}")
-        return DockerService.get_container_logs(env_id)
+        return LogsResponse(logs=DockerService.get_container_logs(env_id))
 
     @staticmethod
     def cleanup() -> OperationResponse:

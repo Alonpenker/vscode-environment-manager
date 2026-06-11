@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.schemas.environment import (
     CreateEnvironmentRequest,
     Environment,
+    LogsResponse,
     OperationResponse,
 )
 from app.services.environment_service import EnvironmentService
@@ -45,7 +46,6 @@ def remove_environment(environment_id: str):
     return EnvironmentService.remove_environment(environment_id)
 
 
-@router.get("/{environment_id}/logs")
+@router.get("/{environment_id}/logs", response_model=LogsResponse)
 def get_logs(environment_id: str):
-    logs = EnvironmentService.get_logs(environment_id)
-    return {"logs": logs}
+    return EnvironmentService.get_logs(environment_id)

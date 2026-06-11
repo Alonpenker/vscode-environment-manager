@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI, Request
-from fastapi.exceptions import RequestValidationError
 
 from app.configs.app_settings import AppSettings
 from app.configs.logging import get_logger, log, LogAction
@@ -9,7 +8,7 @@ from app.services.docker_service import DockerService
 from app.routes import health_router, environments_router
 from app.schemas.errors import AppError
 
-logger = get_logger("API")
+logger = get_logger()
 
 
 @asynccontextmanager
@@ -26,15 +25,6 @@ app = FastAPI(
     openapi_url=f"{AppSettings.API_PREFIX}/openapi.json",
 )
 
-app.add_exception_handler(AppError, handle_exceptions)
-app.add_exception_handler(RequestValidationError, handle_exceptions)
-app.add_exception_handler(Exception, handle_exceptions)
-
-api_router = APIRouter(prefix=AppSettings.API_PREFIX)
-api_router.include_router(health_router)
-api_router.include_router(environments_router)
-app.include_router(api_router)
-
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -48,3 +38,13 @@ async def log_requests(request: Request, call_next):
         },
     )
     return await call_next(request)
+
+
+app.add_exception_handler(AppError, handle_exceptions)
+app.add_exception_handler(Exception, handle_exceptions)
+
+
+api_router = APIRouter(prefix=AppSettings.API_PREFIX)
+api_router.include_router(health_router)
+api_router.include_router(environments_router)
+app.include_router(api_router)
